@@ -29,14 +29,27 @@ class PeringatanDiniController extends Controller
                         // Ambil konten mentah untuk dicek
                         $title = (string)$item->title;
                         $description = (string)$item->description;
-                        $content = $title . ' ' . $description;
+                        //$content = $title . ' ' . $description;
                         
                         $isPapua = false;
                         foreach ($wilayahPapua as $wilayah) {
                             // stripos mencari tanpa peduli besar/kecil huruf
-                            if (stripos($content, $wilayah) !== false) {
+                            if (stripos($title, $wilayah) !== false) {
                                 $isPapua = true;
                                 break;
+                            }
+                        }
+
+                        // PERUBAHAN 2: Validasi tambahan untuk menghindari lolosnya wilayah luar Papua
+                        // Jika di dalam judul ada kata "Sumatera", "Jawa", "Sulawesi", atau "Kalimantan", batalkan status Papua.
+                        if ($isPapua) {
+                            $pengecualian = ['Sumatera', 'Jawa', 'Sulawesi', 'Kalimantan', 'Barat', 'Selatan', 'Tengah', 'Utara', 'Timur'];
+                            foreach ($pengecualian as $kecuali) {
+                            // Jika ada kata pengecualian selain kata 'Papua Barat' / 'Papua Selatan' dsb.
+                                if (stripos($title, $kecuali) !== false && stripos($title, 'Papua') === false) {
+                                    $isPapua = false;
+                                    break;
+                                }
                             }
                         }
 

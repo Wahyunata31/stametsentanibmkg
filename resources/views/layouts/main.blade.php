@@ -169,8 +169,8 @@
                                 Prakiraan
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ route('peringatan.index') }}">Peringatan Dini</a></li>
-                                <li><a class="dropdown-item" href="{{ route('cuaca.prakiraan') }}">Cuaca Prakiraan</a></li>
+                                <li><a class="dropdown-item" href="{{ route('peringatan.index') }}">Peringatan Dini Cuaca</a></li>
+                                <li><a class="dropdown-item" href="{{ route('cuaca.prakiraan') }}">Cuaca Prakiraan Skala Kelurahan</a></li>
                                 <li><h6 class="dropdown-header">Monitoring Satelit</h6></li>
                                 <li><a class="dropdown-item" href="{{ route('citra.eh') }}">Satelit Himawari (EH)</a></li>
                                 <li><a class="dropdown-item" href="{{ route('citra.rp') }}">Satelit Himawari (RP)</a></li>
@@ -179,9 +179,20 @@
                             </ul>
                         </div>
                         <div class="nav-item dropdown">
-                            <a class="nav-link dropdown active" href="{{ url('/pelayanandata') }}" role="button" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle active" href="#" role="button" aria-expanded="false">
                                 Pelayanan Data
                             </a>
+                            <ul class="dropdown-menu" aria-labelledby="navbarGempa">
+                                <li>
+                                    <a class="dropdown-item" href="{{ url('/pelayanandata') }}">PTSP</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="https://dataonline.bmkg.go.id/dataonline-home">Data Online BMKG</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('bulletin.index') }}">Buletin</a>
+                                </li>
+                            </ul>
                         </div>
                         <div class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle active" href="#" id="navbarGempa" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -205,7 +216,7 @@
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="#">METAR & TAF</a></li>
-                                <li><a class="dropdown-item" href="#">Flight Wofi</a></li>
+                                <li><a class="dropdown-item" href="#">Flight WAJJ</a></li>
                                 <li><a class="dropdown-item" href="#">Flight Document</a></li>
                                 <li><a class="dropdown-item" href="https://inasiam.bmkg.go.id/?zoom=10&lat=-2.5337&lng=140.7181">INA - SIAM</a></li>
                             </ul>

@@ -95,19 +95,38 @@ class WelcomeController extends Controller
                     // Daftar kata kunci wilayah di tanah Papua untuk filter yang lebih akurat
                     $wilayahPapua = ['Papua', 'Jayapura', 'Sentani', 'Keerom', 'Sarmi', 'Biak', 'Serui', 'Nabire', 'Mimika', 'Merauke', 'Wamena'];
             
-                    foreach ($xmlRss->channel->item as $item) {
-                        $content = (string)$item->title . ' ' . (string)$item->description;
-                
-                        foreach ($wilayahPapua as $wilayah) {
-                            if (stripos($content, $wilayah) !== false) {
-                                $peringatan = $item;
-                                break 2; // Berhenti jika sudah menemukan salah satu wilayah Papua
+                    foreach ($xmlRss->channel->item as $item) { //
+                        $title = (string)$item->title;
+                        
+                        // Periksa kata kunci Papua HANYA pada JUDUL
+                        $isPapua = false;
+                        foreach ($wilayahPapua as $wilayah) { //
+                            if (stripos($title, $wilayah) !== false) { //
+                                $isPapua = true;
+                                break; //
                             }
+                        }
+
+                        // Proteksi Ganda: Jika lolos, pastikan tidak ada nama pulau lain di judulnya
+                        if ($isPapua) {
+                            $pengecualian = ['Sumatera', 'Jawa', 'Sulawesi', 'Kalimantan', 'Barat', 'Selatan', 'Tengah', 'Utara', 'Timur'];
+                            foreach ($pengecualian as $kecuali) {
+                                if (stripos($title, $kecuali) !== false && stripos($title, 'Papua') === false) {
+                                    $isPapua = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Jika murni peringatan untuk Papua, ambil dan langsung hentikan pencarian
+                        if ($isPapua) {
+                            $peringatan = $item;
+                            break; 
                         }
                     }
                 }
             }
-        } catch (\Exception $e) {}
+        } catch (\Exception $e) {} //
 
         return view('welcome', compact('berita', 'cuaca', 'gempa', 'peringatan'));
     }
