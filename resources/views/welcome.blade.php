@@ -139,7 +139,7 @@
                     @else
                         <div class="text-center py-5">
                             <i class="bi bi-shield-check text-success display-6"></i>
-                            <p class="mt-2 text-muted fw-bold mb-0">Cuaca Papua Aman</p>
+                            <p class="mt-2 text-muted fw-bold mb-0">Peringatan Dini Null</p>
                         </div>
                     @endif
                 </div>

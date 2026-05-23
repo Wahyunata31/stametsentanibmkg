@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash; // <-- Tambahkan baris ini di bagian atas
 
 class DatabaseSeeder extends Seeder
 {
@@ -15,11 +16,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Menghapus penggunaan factory default agar password terjamin menggunakan Bcrypt
+        User::create([
+            'name' => 'admin',                       // <-- Ini Username kamu nanti
+            'email' => 'admin@example.com',
+            'password' => Hash::make('admin123'),    // <-- Ini Password kamu nanti
         ]);
     }
 }

@@ -35,6 +35,9 @@ Route::get('/pelayanandata', function () { return view('pelayanandata'); });
 Route::get('/gempabumi', function () { return view('gempabumi'); });
 Route::get('/citrasatelit', function () { return view('citrasatelit'); });
 
+// Route untuk halaman publik buletin
+Route::get('/buletin', [AdminNewsController::class, 'bulletinIndex'])->name('bulletin.index');
+
 // Grouping route gempa bumi untuk mempermudah manajemen
 Route::prefix('gempa')->group(function () {
     Route::get('/terbaru', [GempaController::class, 'terbaru'])->name('gempa.terbaru');
@@ -86,5 +89,9 @@ Route::middleware(['auth'])->group(function () {
     
     // Proses Hapus Berita
     Route::delete('/hapus-berita/{id}', [AdminNewsController::class, 'destroy'])->name('admin.destroy');
+
+    // Route untuk proses admin (simpan & hapus buletin)
+    Route::post('/simpan-buletin', [AdminNewsController::class, 'storeBulletin'])->name('admin.bulletin.store');
+    Route::delete('/hapus-buletin/{id}', [AdminNewsController::class, 'destroyBulletin'])->name('admin.bulletin.destroy');
     
 });

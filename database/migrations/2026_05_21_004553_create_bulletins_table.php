@@ -11,10 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('news', function (Blueprint $table) {
+        Schema::create('bulletins', function (Blueprint $table) {
             $table->id();
+            $table->string('title');
+            $table->date('publish_date');
+            $table->string('pdf_file'); // Tempat menyimpan file PDF buletin
             $table->timestamps();
-        });
+    });
     }
 
     /**
@@ -22,6 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('news');
+        Schema::dropIfExists('bulletins');
     }
 };
