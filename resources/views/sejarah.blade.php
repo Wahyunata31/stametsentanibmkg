@@ -14,6 +14,14 @@
 @endsection
 
 @section('content')
-<h1>Halaman Sejarah</h1>
+<div class="card border-0 shadow-sm p-4 mb-4">
+    <h2 class="h4 border-bottom pb-2 mb-3">Sejarah Singkat Sta. Met. Kelas I Sentani</h2>
+    <p>Kegiatan pengamatan cuaca di wilayah Sentani memiliki rekam jejak yang panjang:</p>
+    <ol class="list-group list-group-numbered list-group-flush mb-3">
+        <li class="list-group-item bg-transparent"><strong>Masa Kolonial:</strong> Pos pengamatan meteorologi Sentani pertama kali dilaksanakan sejak masa kolonial Hindia Belanda untuk mendukung keselamatan penerbangan dan pemantauan iklim lokal.</li>
+        <li class="list-group-item bg-transparent"><strong>1 Mei 1963:</strong> Secara resmi berubah nama menjadi <strong>Stasiun Meteorologi Sentani</strong>, yang mengawali kiprah operasionalnya di bawah naungan pemerintah Indonesia secara penuh.</li>
+        <li class="list-group-item bg-transparent"><strong>29 Mei 2013:</strong> Seiring dengan meningkatnya volume penerbangan dan kebutuhan data meteorologi yang krusial di wilayah Papua, stasiun ini resmi ditingkatkan statusnya dari stasiun Kelas III hingga menjadi <strong>Stasiun Meteorologi Kelas I Sentani</strong> hingga saat ini.</li>
+    </ol>
+</div>
 
 @endsection

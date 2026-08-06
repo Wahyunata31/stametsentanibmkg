@@ -4,12 +4,22 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class WeatherController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * Sesuai Route: Route::get('/cuaca-prakiraan', [WeatherController::class, 'index'])->name('cuaca.prakiraan');
+     */
+   public function index(Request $request)
     {
-        // 1. Definisikan daftar wilayah (ADM4)
+        $httpHeaders = [
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept'     => 'application/json, text/plain, */*',
+        ];
+
+        // 1. DAFTAR WILAYAH (ADM4)
         $wilayahList = [
             // --- KABUPATEN JAYAPURA ---
             // Distrik Airu
@@ -232,36 +242,159 @@ class WeatherController extends Controller
             '91.71.05.2005' => 'Kampung Waena, Heram (Kota Jayapura)',
             '91.71.05.2003' => 'Yoka, Heram (Kota Jayapura)',
 
-
-
-
-
         ];
 
-        // 2. Ambil kode wilayah dari URL (?kode_wilayah=...), default ke Sentani
-        $selectedAdm = $request->query('kode_wilayah', '91.03.01.2006');
-
-        $apiUrl = "https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=" . $selectedAdm;
-        
-        try {
-            // bypass SSL agar tidak error di localhost
-            $response = Http::withoutVerifying()->timeout(15)->get($apiUrl);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                
-                // 3. KIRIM SEMUA VARIABEL KE VIEW
-                return view('cuacaprakiraan', [
-                    'data' => $data,
-                    'wilayahList' => $wilayahList,
-                    'selectedAdm' => $selectedAdm
-                ]);
-            }
-            
-            return view('cuacaprakiraan')->with('error', 'Gagal mengambil data dari BMKG.');
-
-        } catch (\Exception $e) {
-            return view('cuacaprakiraan')->with('error', 'Koneksi bermasalah: ' . $e->getMessage());
+        $kodeWilayah = $request->get('kode_wilayah', '91.03.01.2006');
+        if (!array_key_exists($kodeWilayah, $wilayahList)) {
+            $kodeWilayah = '91.03.01.2006';
         }
+        $namaWilayahSelected = $wilayahList[$kodeWilayah];
+
+        $cacheKeyFresh    = "prakiraan_cuaca_v6_{$kodeWilayah}";
+        $cacheKeyFallback = "prakiraan_cuaca_fallback_v6_{$kodeWilayah}";
+
+        // LAYER 1: Ambil Fresh Cache (3 Jam)
+        $cuacaData = Cache::get($cacheKeyFresh);
+
+        // LAYER 2: Live Fetch dari API BMKG jika Cache Kosong
+        if (!$cuacaData) {
+            try {
+                $url = "https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4={$kodeWilayah}";
+                $response = Http::withoutVerifying()
+                    ->withHeaders($httpHeaders)
+                    ->retry(3, 300)
+                    ->timeout(6)
+                    ->get($url);
+
+                if ($response->successful()) {
+                    $json = $response->json();
+                    $rawCuaca = $json['data'][0]['cuaca'] ?? null;
+                    $lokasiInfo = $json['data'][0]['lokasi'] ?? null;
+
+                    if (!empty($rawCuaca) && is_array($rawCuaca)) {
+                        $flatItems = [];
+                        foreach ($rawCuaca as $level1) {
+                            if (is_array($level1)) {
+                                if (isset($level1['local_datetime']) || isset($level1['datetime']) || isset($level1['t'])) {
+                                    $flatItems[] = $level1;
+                                } else {
+                                    foreach ($level1 as $level2) {
+                                        if (is_array($level2)) {
+                                            $flatItems[] = $level2;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (!empty($flatItems)) {
+                            $cuacaData = [
+                                'lokasi' => $lokasiInfo,
+                                'cuaca'  => $flatItems
+                            ];
+                            Cache::put($cacheKeyFresh, $cuacaData, 10800);      // 3 Jam
+                            Cache::put($cacheKeyFallback, $cuacaData, 2592000); // 30 Hari
+                        }
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::warning("Gagal fetch cuaca BMKG untuk ADM4 {$kodeWilayah}: " . $e->getMessage());
+            }
+        }
+
+        // LAYER 3: Ambil Fallback Long-term Cache jika Fetch Live Gagal
+        if (!$cuacaData) {
+            $cuacaData = Cache::get($cacheKeyFallback);
+        }
+
+        // LAYER 4: Ultimate Fallback ke Data Sentani jika Wilayah Lain Belum Ada Cache
+        if (!$cuacaData && $kodeWilayah !== '91.03.01.2006') {
+            $cuacaData = Cache::get('prakiraan_cuaca_fallback_v6_91.03.01.2006') 
+                      ?? Cache::get('prakiraan_cuaca_v6_91.03.01.2006');
+        }
+
+        $cuaca = $cuacaData['cuaca'] ?? [];
+        $lokasi = $cuacaData['lokasi'] ?? null;
+
+        return view('cuacaprakiraan', compact(
+            'wilayahList',
+            'kodeWilayah',
+            'namaWilayahSelected',
+            'cuaca',
+            'lokasi'
+        ));
+    }
+
+    /**
+     * Sesuai Route: Route::get('/metartafspeci', [WeatherController::class, 'metarTafSpeci'])->name('cuaca.penerbangan');
+     */
+    public function metarTafSpeci()
+    {
+        $httpHeaders = [
+            'User-Agent'    => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            'Accept'        => 'application/json, text/plain, */*',
+            'Authorization' => 'Bearer 6c8618ae30d96d4fa3bde89d96ff5542a374a72f0896db183f2208491ec6',
+            'Content-Type'  => 'application/json'
+        ];
+
+        $icao = "WAJJ";
+        $aviationData = Cache::get("aviation_{$icao}_full_data");
+
+        if (!$aviationData) {
+            $extractText = function($response, $icaoKey) {
+                if (!$response || !$response->successful()) return '-';
+                $json = $response->json();
+                if (!$json) return '-';
+
+                if (isset($json[$icaoKey][0]['data_text'])) return $json[$icaoKey][0]['data_text'];
+                if (isset($json[0]['data_text'])) return $json[0]['data_text'];
+                if (isset($json['data'][0]['data_text'])) return $json['data'][0]['data_text'];
+                if (isset($json[$icaoKey]['data_text'])) return $json[$icaoKey]['data_text'];
+
+                return '-';
+            };
+
+            $metar = '-';
+            $taf   = '-';
+            $speci = '-';
+
+            // 1. Fetch METAR
+            try {
+                $r1 = Http::withoutVerifying()->withHeaders($httpHeaders)->retry(2, 200)->timeout(8)
+                    ->get("https://web-aviation.bmkg.go.id/api/v1/metar/{$icao}");
+                $metar = $extractText($r1, $icao);
+            } catch (\Exception $e) {}
+
+            // 2. Fetch TAF
+            try {
+                $r2 = Http::withoutVerifying()->withHeaders($httpHeaders)->retry(2, 200)->timeout(8)
+                    ->get("https://web-aviation.bmkg.go.id/api/v1/taf/{$icao}");
+                $taf = $extractText($r2, $icao);
+            } catch (\Exception $e) {}
+
+            // 3. Fetch METAR-SPECI
+            try {
+                $r3 = Http::withoutVerifying()->withHeaders($httpHeaders)->retry(2, 200)->timeout(8)
+                    ->get("https://web-aviation.bmkg.go.id/api/v1/metar-speci/{$icao}");
+                $speci = $extractText($r3, $icao);
+            } catch (\Exception $e) {}
+
+            $aviationData = [
+                'metar' => $metar,
+                'taf'   => $taf,
+                'speci' => $speci
+            ];
+
+            // Simpan cache 5 menit hanya jika ada data yang didapatkan
+            if ($metar !== '-' || $taf !== '-' || $speci !== '-') {
+                Cache::put("aviation_{$icao}_full_data", $aviationData, 300);
+            }
+        }
+
+        $metar = $aviationData['metar'] ?? '-';
+        $taf   = $aviationData['taf'] ?? '-';
+        $speci = $aviationData['speci'] ?? '-';
+
+        return view('metartafspeci', compact('metar', 'taf', 'speci'));
     }
 }

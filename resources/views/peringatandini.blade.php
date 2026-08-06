@@ -14,9 +14,16 @@
 @endsection
 
 @push('styles')
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-    #map { height: 500px; width: 100%; border-radius: 8px; border: 1px solid #ddd; }
+    #image-container { 
+        width: 100%; 
+        border-radius: 8px; 
+        border: 1px solid #ddd; 
+        min-height: 500px; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
     .alert-item { cursor: pointer; transition: 0.2s; border-left: 4px solid transparent; }
     .alert-item:hover { background-color: #f0f7ff; border-left: 4px solid #007bff; }
     .scroll-box { max-height: 500px; overflow-y: auto; }
@@ -31,9 +38,11 @@
                 Daftar Peringatan Aktif (BMKG)
             </div>
             <div class="card-body p-0 scroll-box">
-                <div class="list-group list-group-flush">
-                    @forelse($alerts as $alert)
-                        <div class="list-group-item alert-item" onclick="loadMap('{{ $alert['link'] }}')">
+                <div class="list-group list-group-flush" id="alert-list">
+                    @forelse($alerts as $index => $alert)
+                        <div class="list-group-item alert-item alert-link-item" 
+                             data-link="{{ $alert['link'] }}"
+                             onclick="loadImage('{{ $alert['link'] }}')">
                             <div class="d-flex w-100 justify-content-between">
                                 <h6 class="mb-1 fw-bold text-primary">{{ $alert['title'] }}</h6>
                             </div>
@@ -41,7 +50,7 @@
                             <p class="mb-1 small text-truncate">{{ \Illuminate\Support\Str::limit($alert['description'], 100) }}</p>
                         </div>
                     @empty
-                        <div class="p-4 text-center text-muted">
+                        <div class="p-4 text-center text-muted" id="empty-alert">
                             <i class="bi bi-info-circle d-block mb-2"></i>
                             Tidak ada peringatan dini aktif saat ini.
                         </div>
@@ -50,8 +59,22 @@
             </div>
         </div>
     </div>
+
     <div class="col-md-8">
-        <div id="map" class="shadow-sm"></div>
+        <div id="image-container" class="shadow-sm bg-white p-2 text-center position-relative">
+            <div id="loading-spinner" class="d-none text-muted">
+                <div class="spinner-border text-primary mb-2" role="status"></div>
+                <span class="d-block">Memuat infografis...</span>
+            </div>
+
+            <div id="placeholder-text" class="text-muted p-4">
+                <i class="bi bi-image d-block mb-2" style="font-size: 3rem;"></i>
+                Tidak ada data infografis yang tersedia.
+            </div>
+
+            <img id="alert-image" src="" alt="Infografis Peringatan Dini" class="img-fluid rounded d-none" style="max-height: 550px;">
+        </div>
+
         <div id="info-detail" class="mt-3 card card-body border-warning bg-light d-none shadow-sm">
             <h5 id="detail-headline" class="text-danger fw-bold"></h5>
             <p id="detail-area" class="mb-0"></p>
@@ -63,55 +86,65 @@
 @endsection
 
 @push('scripts')
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // Koordinat awal (Tengah Indonesia atau Papua sesuai keinginan)
-    let map = L.map('map').setView([-2.5489, 140.7181], 6); 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors | Sumber: BMKG'
-    }).addTo(map);
+    document.addEventListener("DOMContentLoaded", function() {
+        // Ambil item peringatan pertama jika ada
+        const firstAlertItem = document.querySelector('.alert-link-item');
+        
+        if (firstAlertItem) {
+            const firstUrl = firstAlertItem.getAttribute('data-link');
+            // Jalankan pengisian gambar pertama kali secara otomatis
+            loadImage(firstUrl);
+        } else {
+            // Jika benar-benar tidak ada alert sama sekali
+            document.getElementById('placeholder-text').classList.remove('d-none');
+        }
+    });
 
-    let polygonGroup = L.featureGroup().addTo(map);
-
-    // ... bagian script lainnya tetap sama ...
-
-    function loadMap(capUrl) {
-        // Tampilkan indikator loading sederhana
+    function loadImage(capUrl) {
         const infoBox = document.getElementById('info-detail');
+        const placeholderText = document.getElementById('placeholder-text');
+        const alertImage = document.getElementById('alert-image');
+        const spinner = document.getElementById('loading-spinner');
+
+        // Tampilkan loading spinner, sembunyikan gambar lama & placeholder
+        spinner.classList.remove('d-none');
+        alertImage.classList.add('d-none');
+        placeholderText.classList.add('d-none');
         infoBox.classList.add('d-none');
 
         fetch(`/peringatan-dini/detail?url=${encodeURIComponent(capUrl)}`)
             .then(res => res.json())
             .then(data => {
-                polygonGroup.clearLayers();
-            
-                if (data.polygons && data.polygons.length > 0) {
-                    data.polygons.forEach(coords => {
-                        L.polygon(coords, {
-                            color: '#d9534f', // Merah peringatan
-                            fillColor: '#f0ad4e', // Orange sesuai standar 
-                            fillOpacity: 0.4,
-                            weight: 2
-                        }).addTo(polygonGroup);
-                    });
-                
-                    // Zoom otomatis ke area poligon
-                    map.fitBounds(polygonGroup.getBounds(), { padding: [20, 20] });
-                
-                    // Update Detail Box
-                    infoBox.classList.remove('d-none');
-                    document.getElementById('detail-headline').innerText = data.headline;
-                    document.getElementById('detail-area').innerHTML = `
-                        <strong>Wilayah:</strong> ${data.area}<br>
-                        <p class="mt-2 small text-dark">${data.description}</p>
-                    `;
+                spinner.classList.add('d-none');
+
+                if (data.image_url) {
+                    alertImage.classList.remove('d-none');
+                    alertImage.src = data.image_url;
                 } else {
-                    alert("Detail lokasi spasial (poligon) tidak ditemukan untuk peringatan ini.");
+                    placeholderText.classList.remove('d-none');
+                    placeholderText.innerHTML = `
+                        <i class="bi bi-exclamation-triangle text-warning d-block mb-2" style="font-size: 3rem;"></i>
+                        Gambar infografis tidak ditemukan untuk peringatan ini.
+                    `;
                 }
+
+                // Tampilkan detail teks pendukung di bawah infografis
+                infoBox.classList.remove('d-none');
+                document.getElementById('detail-headline').innerText = data.headline;
+                document.getElementById('detail-area').innerHTML = `
+                    <strong>Wilayah:</strong> ${data.area}<br>
+                    <p class="mt-2 small text-dark">${data.description}</p>
+                `;
             })
             .catch(err => {
-                console.error("Error loading CAP:", err);
-                alert("Gagal mengambil detail data dari server BMKG.");
+                console.error("Error loading CAP Image:", err);
+                spinner.classList.add('d-none');
+                placeholderText.classList.remove('d-none');
+                placeholderText.innerHTML = `
+                    <i class="bi bi-x-circle text-danger d-block mb-2" style="font-size: 3rem;"></i>
+                    Gagal memuat data dari server BMKG.
+                `;
             });
     }
 </script>

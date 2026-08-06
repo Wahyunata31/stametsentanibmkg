@@ -4,62 +4,85 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class PeringatanDiniController extends Controller
 {
+    private $headers = [
+        'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept'     => 'application/json, text/plain, text/xml, */*',
+    ];
+
     public function index()
     {
-        // 1. Gunakan URL yang sama persis dengan WelcomeController
-        $rss_url = "https://www.bmkg.go.id/alerts/nowcast/id/rss.xml?v=" . time(); 
-        $alerts = [];
+        // 1. Ambil list dari Cache yang sudah difetch oleh Cron Command `bmkg:fetch`
+        $alerts = Cache::get('peringatan_dini_papua_list');
 
-        // 2. Daftar wilayah standar Papua
-        $wilayahPapua = ['Papua', 'Jayapura', 'Sentani', 'Keerom', 'Sarmi', 'Biak', 'Serui', 'Nabire', 'Mimika', 'Merauke', 'Wamena'];
+        // 2. Jika Cache Kosong, Lakukan Live Fetch
+        if ($alerts === null) {
+            $alerts = [];
+            try {
+                $resRss = Http::withoutVerifying()
+                    ->withHeaders($this->headers)
+                    ->retry(2, 300)
+                    ->timeout(6)
+                    ->get("https://www.bmkg.go.id/alerts/nowcast/id/rss.xml");
 
-        try {
-            // Gunakan withoutVerifying() dan timeout seperti di WelcomeController
-            $response = Http::withoutVerifying()->timeout(10)->get($rss_url);
-        
-            if ($response->successful()) {
-                $xml = simplexml_load_string($response->body());
-                
-                if (isset($xml->channel->item)) {
-                    foreach ($xml->channel->item as $item) {
-                        // Ambil konten mentah untuk dicek
-                        $title = (string)$item->title;
-                        $description = (string)$item->description;
-                        $content = $title . ' ' . $description;
-                        
-                        $isPapua = false;
-                        foreach ($wilayahPapua as $wilayah) {
-                            // stripos mencari tanpa peduli besar/kecil huruf
-                            if (stripos($content, $wilayah) !== false) {
-                                $isPapua = true;
-                                break;
+                if ($resRss->successful()) {
+                    $xmlRss = @simplexml_load_string($resRss->body());
+                    $wilayahPapua = [
+                        'Papua', 'Jayapura', 'Sentani', 'Keerom', 'Sarmi', 'Biak', 'Serui', 
+                        'Nabire', 'Mimika', 'Merauke', 'Wamena', 'Mappi', 'Asmat', 'Boven Digoel',
+                        'Pegunungan', 'Intan Jaya', 'Paniai', 'Puncak', 'Dogiyai', 'Deiyai', 'Sorong', 'Manokwari'
+                    ];
+
+                    if (isset($xmlRss->channel->item)) {
+                        foreach ($xmlRss->channel->item as $item) {
+                            $title = (string)$item->title;
+                            $description = (string)$item->description;
+                            $fullContent = $title . ' ' . $description;
+
+                            $isPapua = false;
+                            foreach ($wilayahPapua as $wilayah) {
+                                if (stripos($fullContent, $wilayah) !== false) {
+                                    $isPapua = true;
+                                    break;
+                                }
+                            }
+
+                            if ($isPapua) {
+                                $pulauLain = ['Sumatera', 'Jawa', 'Sulawesi', 'Kalimantan', 'Bali', 'Nusa Tenggara', 'Maluku'];
+                                foreach ($pulauLain as $pulau) {
+                                    if (stripos($fullContent, $pulau) !== false && stripos($fullContent, 'Papua') === false) {
+                                        $isPapua = false;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            if ($isPapua) {
+                                $alerts[] = [
+                                    'title'       => trim($title),
+                                    'link'        => trim((string)$item->link),
+                                    'description' => trim(strip_tags($description)),
+                                    'pubDate'     => trim((string)$item->pubDate),
+                                    'author'      => trim((string)$item->author),
+                                ];
                             }
                         }
+                    }
 
-                        if ($isPapua) {
-                            // Simpan ke array dengan memastikan semua data adalah string murni
-                            $alerts[] = [
-                                'title'       => trim($title),
-                                'link'        => trim((string)$item->link),
-                                'description' => trim(strip_tags($description)),
-                                'pubDate'     => trim((string)$item->pubDate),
-                                'author'      => trim((string)$item->author),
-                            ];
-                        }
+                    // Simpan ke Cache jika ditemukan alerts
+                    if (!empty($alerts)) {
+                        Cache::put('peringatan_dini_papua_list', $alerts, 1800);
                     }
                 }
+            } catch (\Exception $e) {
+                Log::warning("Gagal fetch RSS Peringatan Dini: " . $e->getMessage());
             }
-        } catch (\Exception $e) {
-            // Jika error, kirim array kosong agar view tidak crash
-            $alerts = [];
         }
 
-        // Debugging sederhana: Jika masih kosong, coba hapus filter Papua sementara 
-        // untuk memastikan data RSS BMKG memang bisa ditarik.
         return view('peringatandini', compact('alerts'));
     }
 
@@ -68,43 +91,58 @@ class PeringatanDiniController extends Controller
         $url = $request->query('url');
         if (!$url) return response()->json(['error' => 'URL required'], 400);
 
-        try {
-            // Gunakan Http client agar konsisten dengan bypass SSL
-            $response = Http::withoutVerifying()->get($url);
-            $xml = simplexml_load_string($response->body());
-            
-            $namespaces = $xml->getNamespaces(true);
-            $cap_ns = $namespaces[""] ?? "urn:oasis:names:tc:emergency:cap:1.2";
-            $info = $xml->children($cap_ns)->info;
+        $cacheKey = "cap_detail_" . md5($url);
 
-            $polygons = [];
-            if ($info && isset($info->area)) {
-                foreach ($info->area as $area) {
-                    if (isset($area->polygon)) {
-                        foreach ($area->polygon as $poly_str) {
-                            $coords = [];
-                            $pairs = explode(" ", trim((string)$poly_str));
-                            foreach ($pairs as $pair) {
-                                $lat_lon = explode(",", $pair);
-                                if (count($lat_lon) === 2) {
-                                    $coords[] = [(float)$lat_lon[0], (float)$lat_lon[1]];
+        $result = Cache::remember($cacheKey, 2592000, function () use ($url) { // Cache 30 Hari agar infografis tidak perlu reload ulang
+            try {
+                $response = Http::withoutVerifying()
+                    ->withHeaders($this->headers)
+                    ->retry(2, 300)
+                    ->timeout(8)
+                    ->get($url);
+
+                if (!$response->successful()) return null;
+
+                $xml = simplexml_load_string($response->body());
+                $namespaces = $xml->getNamespaces(true);
+                $cap_ns = $namespaces[""] ?? "urn:oasis:names:tc:emergency:cap:1.2";
+                $info = $xml->children($cap_ns)->info;
+
+                $imageUrl = isset($info->web) ? (string)$info->web : null;
+
+                $polygons = [];
+                if ($info && isset($info->area)) {
+                    foreach ($info->area as $area) {
+                        if (isset($area->polygon)) {
+                            foreach ($area->polygon as $poly_str) {
+                                $coords = [];
+                                $pairs = explode(" ", trim((string)$poly_str));
+                                foreach ($pairs as $pair) {
+                                    $lat_lon = explode(",", $pair);
+                                    if (count($lat_lon) === 2) {
+                                        $coords[] = [(float)$lat_lon[0], (float)$lat_lon[1]];
+                                    }
                                 }
+                                $polygons[] = $coords;
                             }
-                            $polygons[] = $coords;
                         }
                     }
                 }
-            }
 
-            return response()->json([
-                'polygons' => $polygons,
-                'headline' => (string)($info->headline ?? 'Peringatan Dini'),
-                'area'     => (string)($info->area->areaDesc ?? 'Wilayah Papua'),
-                'description' => (string)($info->description ?? ''),
-                'instruction' => (string)($info->instruction ?? 'Tetap waspada.')
-            ]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Data tidak ditemukan'], 404);
-        }
+                return [
+                    'polygons'    => $polygons,
+                    'image_url'   => $imageUrl,
+                    'headline'    => (string)($info->headline ?? 'Peringatan Dini'),
+                    'area'        => (string)($info->area->areaDesc ?? 'Wilayah Papua'),
+                    'description' => (string)($info->description ?? ''),
+                    'instruction' => (string)($info->instruction ?? 'Tetap waspada.')
+                ];
+            } catch (\Exception $e) {
+                return null;
+            }
+        });
+
+        if ($result) return response()->json($result);
+        return response()->json(['error' => 'Data tidak ditemukan'], 404);
     }
 }

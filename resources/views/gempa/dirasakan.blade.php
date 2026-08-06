@@ -9,8 +9,6 @@
     <li class="breadcrumb-item" aria-current="page">Gempa Bumi Dirasakan</li>
 @endsection
 
-@section('page_title', 'Gempa Bumi Dirasakan')
-
 @section('page_description')
     Informasi gempa bumi dirasakan di wilayah Indonesia.
 @endsection
@@ -26,16 +24,22 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($data->gempa as $index => $gd)
-                <tr>
-                    <td>{{ $loop->iteration }}</td>
-                    <td>{{ $gd->Tanggal }} {{ $gd->Jam }}</td> 
-                    <td>{{ $gd->Magnitude }} SR</td> 
-                    <td>{{ $gd->Kedalaman }}</td> 
-                    <td>{{ $gd->Wilayah }}</td>
-                    <td><span class="text-primary">{{ $gd->Dirasakan }}</span></td> 
-                </tr>
-                @endforeach
+                @if(isset($data->gempa) && count($data->gempa) > 0)
+                    @foreach($data->gempa as $index => $gd)
+                    <tr>
+                        <td>{{ $loop->iteration }}</td>
+                        <td>{{ $gd->Tanggal }} {{ $gd->Jam }}</td> 
+                        <td>{{ $gd->Magnitude }} SR</td> 
+                        <td>{{ $gd->Kedalaman }}</td> 
+                        <td>{{ $gd->Wilayah }}</td>
+                        <td><span class="text-primary">{{ $gd->Dirasakan }}</span></td> 
+                    </tr>
+                    @endforeach
+                @else
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">Data gempa dirasakan saat ini sedang tidak tersedia.</td>
+                    </tr>
+                @endif
             </tbody>
         </table>
     </div>

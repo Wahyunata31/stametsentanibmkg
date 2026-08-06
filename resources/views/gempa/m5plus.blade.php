@@ -8,12 +8,9 @@
     <li class="breadcrumb-item" aria-current="page">Gempa Bumi M 5.0+</li>
 @endsection
 
-@section('page_title', 'Daftar Gempa M 5.0+')
-
 @section('page_description')
     Informasi gempa bumi M 5.0+ di wilayah Indonesia.
 @endsection
-
 
 @section('content')
 <div class="container mt-4">
@@ -26,16 +23,22 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($data->gempa as $index => $g)
-                <tr>
-                    <td>{{ $loop->iteration }}</td>
-                    <td>{{ $g->Tanggal }} {{ $g->Jam }}</td> 
-                    <td><span class="badge bg-warning text-dark">{{ $g->Magnitude }}</span></td> 
-                    <td>{{ $g->Kedalaman }}</td> 
-                    <td>{{ $g->Wilayah }}</td>
-                    <td>{{ $g->Potensi }}</td>
-                </tr>
-                @endforeach
+                @if(isset($data->gempa) && count($data->gempa) > 0)
+                    @foreach($data->gempa as $index => $g)
+                    <tr>
+                        <td>{{ $loop->iteration }}</td>
+                        <td>{{ $g->Tanggal }} {{ $g->Jam }}</td> 
+                        <td><span class="badge bg-warning text-dark">{{ $g->Magnitude }}</span></td> 
+                        <td>{{ $g->Kedalaman }}</td> 
+                        <td>{{ $g->Wilayah }}</td>
+                        <td>{{ $g->Potensi }}</td>
+                    </tr>
+                    @endforeach
+                @else
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">Data gempa M 5.0+ saat ini sedang tidak tersedia.</td>
+                    </tr>
+                @endif
             </tbody>
         </table>
     </div>
