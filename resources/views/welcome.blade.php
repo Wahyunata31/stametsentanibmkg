@@ -243,7 +243,11 @@
                     @else
                         <div class="text-center py-5">
                             <i class="bi bi-shield-check text-success display-6"></i>
+<<<<<<< HEAD
                             <p class="mt-2 text-muted fw-bold mb-0">Peringatan Dini Null / Nihil</p>
+=======
+                            <p class="mt-2 text-muted fw-bold mb-0">Peringatan Dini Null</p>
+>>>>>>> c902ccb19bd36fa7ae7a0502054dfa0fe037a2ad
                         </div>
                     @endif
                 </div>

@@ -193,6 +193,7 @@
                 <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
+<<<<<<< HEAD
                 
                 <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
                     <div class="offcanvas-header bg-light border-bottom">
@@ -274,6 +275,90 @@
                                     <li><a class="dropdown-item" href="https://inasiam.bmkg.go.id/?zoom=10&lat=-2.5337&lng=140.7181">INA - SIAM</a></li>
                                 </ul>
                             </div>
+=======
+                <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+                    <div class="navbar-nav mx-auto">
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Profil
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url('/profil') }}">Profil Stasiun</a></li>
+                                <li><a class="dropdown-item" href="{{ url('/tugasfungsi') }}">Tugas dan Fungsi</a></li>
+                                <li><a class="dropdown-item" href="{{ url('/visimisi') }}">Visi dan Misi</a></li>
+                                <li><a class="dropdown-item" href="{{ url('/strukturorganisasi') }}">Struktur Organisasi</a></li>
+                                <li><a class="dropdown-item" href="{{ url('/sdm') }}">SDM</a></li>
+                                <li><a class="dropdown-item" href="{{ url('/sejarah') }}">Sejarah</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#">Kontak Kami</a></li>
+                            </ul>
+                        </div>
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Pengamatan
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url('/radar') }}">Radar Papua</a></li>
+                                <li><a class="dropdown-item" href="{{ url('/aloptama') }}">Aloptama</a></li>
+                            </ul>
+                        </div>
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Prakiraan
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ route('peringatan.index') }}">Peringatan Dini Cuaca</a></li>
+                                <li><a class="dropdown-item" href="{{ route('cuaca.prakiraan') }}">Cuaca Prakiraan Skala Kelurahan</a></li>
+                                <li><h6 class="dropdown-header">Monitoring Satelit</h6></li>
+                                <li><a class="dropdown-item" href="{{ route('citra.eh') }}">Satelit Himawari (EH)</a></li>
+                                <li><a class="dropdown-item" href="{{ route('citra.rp') }}">Satelit Himawari (RP)</a></li>
+                                <li><a class="dropdown-item" href="{{ route('citra.presipitasi') }}">Presipitasi (GSMaP)</a></li>
+                                <li><a class="dropdown-item" href="{{ route('citra.hotspot') }}">Sebaran Hotspot</a></li>
+                            </ul>
+                        </div>
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle active" href="#" role="button" aria-expanded="false">
+                                Pelayanan Data
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="navbarGempa">
+                                <li>
+                                    <a class="dropdown-item" href="{{ url('/pelayanandata') }}">PTSP</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="https://dataonline.bmkg.go.id/dataonline-home">Data Online BMKG</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('bulletin.index') }}">Buletin</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle active" href="#" id="navbarGempa" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Gempa Bumi
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="navbarGempa">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('gempa.terbaru') }}">Gempa Bumi Terbaru</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('gempa.m5plus') }}">Gempabumi M 5.0+</a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('gempa.dirasakan') }}">Gempabumi Dirasakan</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle active" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Penerbangan
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#">METAR & TAF</a></li>
+                                <li><a class="dropdown-item" href="#">Flight WAJJ</a></li>
+                                <li><a class="dropdown-item" href="#">Flight Document</a></li>
+                                <li><a class="dropdown-item" href="https://inasiam.bmkg.go.id/?zoom=10&lat=-2.5337&lng=140.7181">INA - SIAM</a></li>
+                            </ul>
+>>>>>>> c902ccb19bd36fa7ae7a0502054dfa0fe037a2ad
                         </div>
                     </div>
                 </div>

@@ -29,6 +29,7 @@ class PeringatanDiniController extends Controller
                     ->timeout(6)
                     ->get("https://www.bmkg.go.id/alerts/nowcast/id/rss.xml");
 
+<<<<<<< HEAD
                 if ($resRss->successful()) {
                     $xmlRss = @simplexml_load_string($resRss->body());
                     $wilayahPapua = [
@@ -69,13 +70,61 @@ class PeringatanDiniController extends Controller
                                     'pubDate'     => trim((string)$item->pubDate),
                                     'author'      => trim((string)$item->author),
                                 ];
+=======
+        try {
+            // Gunakan withoutVerifying() dan timeout seperti di WelcomeController
+            $response = Http::withoutVerifying()->timeout(10)->get($rss_url);
+        
+            if ($response->successful()) {
+                $xml = simplexml_load_string($response->body());
+                
+                if (isset($xml->channel->item)) {
+                    foreach ($xml->channel->item as $item) {
+                        // Ambil konten mentah untuk dicek
+                        $title = (string)$item->title;
+                        $description = (string)$item->description;
+                        //$content = $title . ' ' . $description;
+                        
+                        $isPapua = false;
+                        foreach ($wilayahPapua as $wilayah) {
+                            // stripos mencari tanpa peduli besar/kecil huruf
+                            if (stripos($title, $wilayah) !== false) {
+                                $isPapua = true;
+                                break;
+>>>>>>> c902ccb19bd36fa7ae7a0502054dfa0fe037a2ad
                             }
                         }
                     }
 
+<<<<<<< HEAD
                     // Simpan ke Cache jika ditemukan alerts
                     if (!empty($alerts)) {
                         Cache::put('peringatan_dini_papua_list', $alerts, 1800);
+=======
+                        // PERUBAHAN 2: Validasi tambahan untuk menghindari lolosnya wilayah luar Papua
+                        // Jika di dalam judul ada kata "Sumatera", "Jawa", "Sulawesi", atau "Kalimantan", batalkan status Papua.
+                        if ($isPapua) {
+                            $pengecualian = ['Sumatera', 'Jawa', 'Sulawesi', 'Kalimantan', 'Barat', 'Selatan', 'Tengah', 'Utara', 'Timur'];
+                            foreach ($pengecualian as $kecuali) {
+                            // Jika ada kata pengecualian selain kata 'Papua Barat' / 'Papua Selatan' dsb.
+                                if (stripos($title, $kecuali) !== false && stripos($title, 'Papua') === false) {
+                                    $isPapua = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if ($isPapua) {
+                            // Simpan ke array dengan memastikan semua data adalah string murni
+                            $alerts[] = [
+                                'title'       => trim($title),
+                                'link'        => trim((string)$item->link),
+                                'description' => trim(strip_tags($description)),
+                                'pubDate'     => trim((string)$item->pubDate),
+                                'author'      => trim((string)$item->author),
+                            ];
+                        }
+>>>>>>> c902ccb19bd36fa7ae7a0502054dfa0fe037a2ad
                     }
                 }
             } catch (\Exception $e) {

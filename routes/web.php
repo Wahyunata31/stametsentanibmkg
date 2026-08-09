@@ -123,6 +123,7 @@ Route::middleware(['auth'])->group(function () {
     // Route untuk proses admin (simpan & hapus buletin)
     Route::post('/simpan-buletin', [AdminNewsController::class, 'storeBulletin'])->name('admin.bulletin.store');
     Route::delete('/hapus-buletin/{id}', [AdminNewsController::class, 'destroyBulletin'])->name('admin.bulletin.destroy');
+<<<<<<< HEAD
 
     // Fitur Management Flight Document Admin
     Route::get('/admin/flight-document', [FlightDocumentController::class, 'adminIndex'])->name('admin.flightdoc.index');
@@ -137,4 +138,7 @@ Route::middleware(['auth'])->group(function () {
     // Tambahkan 2 rute penanganan kendala ini
     Route::post('/admin/aloptama/kendala', [AloptamaController::class, 'storeKendala'])->name('admin.aloptama.kendala.store');
     Route::post('/admin/aloptama/kendala/{id}/selesai', [AloptamaController::class, 'selesaikanKendala'])->name('admin.aloptama.kendala.selesai');
+=======
+    
+>>>>>>> c902ccb19bd36fa7ae7a0502054dfa0fe037a2ad
 });

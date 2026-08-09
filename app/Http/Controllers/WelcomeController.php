@@ -41,6 +41,7 @@ class WelcomeController extends Controller
                     ->timeout(6)
                     ->get("https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=91.03.01.2006");
 
+<<<<<<< HEAD
                 if ($responseCuaca->successful()) {
                     $rawCuaca = $responseCuaca->json();
                     if (isset($rawCuaca['data'][0]['cuaca'])) {
@@ -75,6 +76,50 @@ class WelcomeController extends Controller
                                 'next'    => array_slice($filteredCuaca, 0, 12)
                             ];
                             Cache::put('welcome_cuaca_sentani', $cuaca, 1800);
+=======
+        // WelcomeController.php
+
+        // 3. Ambil Peringatan Dini Papua
+        $peringatan = null;
+        try {
+            // Menambahkan query parameter untuk menghindari cache provider jika ada
+            $responseRss = Http::withoutVerifying()->timeout(5)
+                ->get("https://www.bmkg.go.id/alerts/nowcast/id/rss.xml?v=" . time());
+    
+            if ($responseRss->successful()) {
+                $xmlRss = simplexml_load_string($responseRss->body());
+                if (isset($xmlRss->channel->item)) {
+                    // Daftar kata kunci wilayah di tanah Papua untuk filter yang lebih akurat
+                    $wilayahPapua = ['Papua', 'Jayapura', 'Sentani', 'Keerom', 'Sarmi', 'Biak', 'Serui', 'Nabire', 'Mimika', 'Merauke', 'Wamena'];
+            
+                    foreach ($xmlRss->channel->item as $item) { //
+                        $title = (string)$item->title;
+                        
+                        // Periksa kata kunci Papua HANYA pada JUDUL
+                        $isPapua = false;
+                        foreach ($wilayahPapua as $wilayah) { //
+                            if (stripos($title, $wilayah) !== false) { //
+                                $isPapua = true;
+                                break; //
+                            }
+                        }
+
+                        // Proteksi Ganda: Jika lolos, pastikan tidak ada nama pulau lain di judulnya
+                        if ($isPapua) {
+                            $pengecualian = ['Sumatera', 'Jawa', 'Sulawesi', 'Kalimantan', 'Barat', 'Selatan', 'Tengah', 'Utara', 'Timur'];
+                            foreach ($pengecualian as $kecuali) {
+                                if (stripos($title, $kecuali) !== false && stripos($title, 'Papua') === false) {
+                                    $isPapua = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        // Jika murni peringatan untuk Papua, ambil dan langsung hentikan pencarian
+                        if ($isPapua) {
+                            $peringatan = $item;
+                            break; 
+>>>>>>> c902ccb19bd36fa7ae7a0502054dfa0fe037a2ad
                         }
                     }
                 }
@@ -104,6 +149,7 @@ class WelcomeController extends Controller
                     }
                 } catch (\Exception $e) {}
             }
+<<<<<<< HEAD
         }
 
         // Layer C: Jika Semua Cache Kosong -> Fetch Live XML dari BMKG
@@ -144,6 +190,9 @@ class WelcomeController extends Controller
             $peringatanData = Cache::get('welcome_peringatan_papua_v3');
             $peringatan = $peringatanData ? (object) $peringatanData : null;
         }
+=======
+        } catch (\Exception $e) {} //
+>>>>>>> c902ccb19bd36fa7ae7a0502054dfa0fe037a2ad
 
         return view('welcome', compact('berita', 'cuaca', 'gempa', 'peringatan'));
     }
